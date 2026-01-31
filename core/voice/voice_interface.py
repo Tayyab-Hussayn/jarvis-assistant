@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import json
 from .speech_cleaner import speech_cleaner
+from .audio_manager import audio_manager
 
 @dataclass
 class VoiceConfig:
@@ -295,13 +296,17 @@ class VoiceInterface:
             cleaned_text = speech_cleaner.clean_for_speech(text)
             
             if save_file:
-                output_file = f"jarvis_speech_{int(asyncio.get_event_loop().time())}.mp3"
+                # Use audio manager for organized file storage
+                output_file = audio_manager.generate_tts_filename()
                 result = await self.tts_engine.speak_text(cleaned_text, output_file)
-                self.logger.info(f"JARVIS spoke: '{text[:50]}...' -> '{cleaned_text[:50]}...' (saved to {result})")
+                self.logger.info(f"JARVIS spoke: '{text[:50]}...' -> saved to {result}")
+                
+                # Cleanup old files periodically
+                await audio_manager.cleanup_old_files()
                 return result
             else:
                 audio_bytes = await self.tts_engine.speak_text(cleaned_text)
-                self.logger.info(f"JARVIS spoke: '{text[:50]}...' -> '{cleaned_text[:50]}...' ({len(audio_bytes)} bytes)")
+                self.logger.info(f"JARVIS spoke: '{text[:50]}...' ({len(audio_bytes)} bytes)")
                 return None
                 
         except Exception as e:

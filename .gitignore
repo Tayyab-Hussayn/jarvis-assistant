@@ -129,11 +129,15 @@ downloads/
 attachments/
 email_cache/
 
-# Voice Files
+# Audio Files and Cache
+audio/
+voice_cache/
 *.wav
 *.mp3
 *.ogg
-voice_cache/
+
+# Development Documentation Archive
+docs/development/
 
 # Browser Automation
 screenshots/

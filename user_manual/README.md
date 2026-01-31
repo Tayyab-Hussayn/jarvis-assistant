@@ -35,6 +35,7 @@ user_manual/
 ### Developing JARVIS
 - **Development Guide**: [development/development_guide.md](development/development_guide.md)
 - **Code Reference**: [development/directory_structure.md](development/directory_structure.md)
+- **Testing History**: [development/testing_history.md](development/testing_history.md)
 
 ### Troubleshooting
 - **Common Issues**: [troubleshooting/common_issues.md](troubleshooting/common_issues.md)
