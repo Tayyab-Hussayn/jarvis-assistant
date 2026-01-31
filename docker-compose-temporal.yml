@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for Temporal persistence
+  temporal-postgres:
+    image: postgres:15
+    container_name: jarvis_temporal_postgres
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal_secure_2024
+    ports:
+      - "5433:5432"
+    volumes:
+      - temporal_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Temporal Server
+  temporal:
+    image: temporalio/auto-setup:1.22.0
+    container_name: jarvis_temporal
+    depends_on:
+      - temporal-postgres
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal_secure_2024
+      - POSTGRES_SEEDS=temporal-postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"   # gRPC
+      - "8233:8233"   # HTTP
+    volumes:
+      - ./temporal-config:/etc/temporal/config/dynamicconfig
+    restart: unless-stopped
+
+  # Temporal Web UI
+  temporal-web:
+    image: temporalio/web:2.21.3
+    container_name: jarvis_temporal_web
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  temporal_postgres_data:
