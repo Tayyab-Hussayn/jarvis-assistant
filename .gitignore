@@ -1,0 +1,145 @@
+# JARVIS AI Agent - Git Ignore File
+
+# Environment and Configuration
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+config/local/
+config/secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# IDE and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and Databases
+*.log
+*.db
+*.sqlite
+*.sqlite3
+jarvis_dev.db
+jarvis_prod.db
+jarvis_test.db
+logs/
+*.log.*
+
+# API Keys and Secrets
+api_keys.txt
+secrets.yaml
+credentials.json
+*.pem
+*.key
+*.crt
+
+# Temporary Files
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+*.cache
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# Temporal
+temporal-data/
+temporal_logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Model Files and Large Data
+*.model
+*.bin
+*.safetensors
+models/
+data/large/
+*.pkl
+*.pickle
+
+# OS Generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup Files
+*.bak
+*.backup
+*.old
+*~
+
+# Completion Status (keep local)
+completion_status.json
+
+# Email Attachments and Downloads
+downloads/
+attachments/
+email_cache/
+
+# Voice Files
+*.wav
+*.mp3
+*.ogg
+voice_cache/
+
+# Browser Automation
+screenshots/
+browser_cache/
+*.har
+
+# Code Execution Sandbox
+sandbox_output/
+execution_logs/

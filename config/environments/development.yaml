@@ -1,0 +1,36 @@
+# JARVIS Development Configuration
+temporal:
+  address: "localhost:7233"
+  timeout: 3600
+  task_queue: "jarvis-dev-queue"
+
+llm:
+  provider: "qwen"
+  api_key: "${LLM_API_KEY}"
+  model: "qwen2.5-coder:7b"
+  max_tokens: 4096
+
+database:
+  url: "sqlite:///jarvis_dev.db"
+  pool_size: 5
+
+email:
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  username: "${EMAIL_USERNAME}"
+  password: "${EMAIL_PASSWORD}"
+
+voice:
+  tts_enabled: true
+  stt_enabled: true
+  voice_speed: 1.0
+
+monitoring:
+  enabled: false
+  log_level: "DEBUG"
+  metrics_port: 9090
+
+security:
+  allowed_commands: ["echo", "ls", "pwd", "cat"]
+  sandbox_enabled: true
+  max_execution_time: 300

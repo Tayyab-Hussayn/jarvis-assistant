@@ -1,0 +1,36 @@
+# JARVIS Production Configuration
+temporal:
+  address: "${TEMPORAL_ADDRESS}"
+  timeout: 7200
+  task_queue: "jarvis-prod-queue"
+
+llm:
+  provider: "${LLM_PROVIDER}"
+  api_key: "${LLM_API_KEY}"
+  model: "${LLM_MODEL}"
+  max_tokens: 8192
+
+database:
+  url: "${DATABASE_URL}"
+  pool_size: 20
+
+email:
+  smtp_server: "${SMTP_SERVER}"
+  smtp_port: "${SMTP_PORT}"
+  username: "${EMAIL_USERNAME}"
+  password: "${EMAIL_PASSWORD}"
+
+voice:
+  tts_enabled: "${TTS_ENABLED}"
+  stt_enabled: "${STT_ENABLED}"
+  voice_speed: 1.0
+
+monitoring:
+  enabled: true
+  log_level: "INFO"
+  metrics_port: 9090
+
+security:
+  allowed_commands: ["echo", "ls", "pwd"]
+  sandbox_enabled: true
+  max_execution_time: 600

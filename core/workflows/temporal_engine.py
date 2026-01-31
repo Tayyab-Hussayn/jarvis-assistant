@@ -38,8 +38,14 @@ class WorkflowResult:
 class TemporalWorkflowEngine:
     """Enterprise workflow engine using Temporal.io"""
     
-    def __init__(self, temporal_address: str = "localhost:7233"):
-        self.temporal_address = temporal_address
+    def __init__(self, temporal_address: str = None):
+        # Use config manager for settings
+        from core.config.config_manager import config_manager
+        config = config_manager.get_config()
+        
+        self.temporal_address = temporal_address or config.temporal_address
+        self.task_queue = config.temporal_task_queue
+        self.timeout = config.temporal_timeout
         self.client: Optional[Client] = None
         self.worker: Optional[Worker] = None
         self.logger = logging.getLogger("temporal_engine")
@@ -57,12 +63,28 @@ class TemporalWorkflowEngine:
             # Connect to Temporal server
             self.client = await Client.connect(self.temporal_address)
             
-            # Create worker
+            # Import workflow and activity definitions
+            from .jarvis_workflows import (
+                SimpleTaskWorkflow, MultiStepTaskWorkflow, 
+                ApprovalWorkflow, ScheduledTaskWorkflow,
+                execute_tool_activity, llm_reasoning_activity, wait_for_approval_activity
+            )
+            
+            # Create worker with registered workflows and activities
             self.worker = Worker(
                 self.client,
-                task_queue="jarvis-task-queue",
-                workflows=[],  # Will be populated dynamically
-                activities=[]  # Will be populated dynamically
+                task_queue=self.task_queue,
+                workflows=[
+                    SimpleTaskWorkflow,
+                    MultiStepTaskWorkflow, 
+                    ApprovalWorkflow,
+                    ScheduledTaskWorkflow
+                ],
+                activities=[
+                    execute_tool_activity,
+                    llm_reasoning_activity,
+                    wait_for_approval_activity
+                ]
             )
             
             self.connected = True
@@ -101,8 +123,8 @@ class TemporalWorkflowEngine:
                 request.workflow_type,
                 request.input_data,
                 id=request.workflow_id,
-                task_queue="jarvis-task-queue",
-                execution_timeout=request.timeout or timedelta(hours=24)
+                task_queue=self.task_queue,
+                execution_timeout=request.timeout or timedelta(seconds=self.timeout)
             )
             
             # Wait for result
@@ -195,7 +217,8 @@ class TemporalWorkflowEngine:
     async def close(self):
         """Close Temporal connections"""
         if self.client:
-            await self.client.close()
+            # Temporal client doesn't have close method, just set to None
+            self.client = None
         self.connected = False
         self.logger.info("Temporal connections closed")
 

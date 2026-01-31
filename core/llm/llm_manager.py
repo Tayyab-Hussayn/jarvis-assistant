@@ -364,6 +364,17 @@ class LLMManager:
         self.logger = logging.getLogger("llm_manager")
         self.clients: Dict[str, BaseLLMClient] = {}
         self.current_provider: Optional[str] = None
+        
+        # Use config manager for settings
+        from core.config.config_manager import config_manager
+        jarvis_config = config_manager.get_config()
+        
+        self.default_provider = jarvis_config.llm_provider
+        self.default_model = jarvis_config.llm_model
+        self.api_key = jarvis_config.llm_api_key
+        self.max_tokens = jarvis_config.llm_max_tokens
+        
+        # Legacy config path support
         self.config_path = config_path or "/home/krawin/code/jarvis/config.yaml"
         
         # Client mapping

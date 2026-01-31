@@ -1,0 +1,36 @@
+# JARVIS Testing Configuration
+temporal:
+  address: "localhost:7233"
+  timeout: 1800
+  task_queue: "jarvis-test-queue"
+
+llm:
+  provider: "mock"
+  api_key: "test-key"
+  model: "mock-model"
+  max_tokens: 1024
+
+database:
+  url: "sqlite:///:memory:"
+  pool_size: 1
+
+email:
+  smtp_server: "localhost"
+  smtp_port: 1025
+  username: "test@example.com"
+  password: "test-password"
+
+voice:
+  tts_enabled: false
+  stt_enabled: false
+  voice_speed: 1.0
+
+monitoring:
+  enabled: false
+  log_level: "DEBUG"
+  metrics_port: 9091
+
+security:
+  allowed_commands: ["echo", "ls", "pwd", "cat", "grep"]
+  sandbox_enabled: true
+  max_execution_time: 60
