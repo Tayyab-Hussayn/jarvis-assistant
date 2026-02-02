@@ -69,11 +69,15 @@ class BaseLLMClient(ABC):
         return True
 
 class QwenClient(BaseLLMClient):
-    """Qwen LLM client with authentication token"""
+    """Qwen LLM client with OAuth authentication"""
     
     def __init__(self, config: LLMConfig):
         super().__init__(config)
         self.session = None
+        
+        # Import auth manager
+        from .qwen_auth import qwen_auth
+        self.auth_manager = qwen_auth
     
     async def _get_session(self):
         """Get HTTP session"""
@@ -81,6 +85,14 @@ class QwenClient(BaseLLMClient):
             import aiohttp
             self.session = aiohttp.ClientSession()
         return self.session
+    
+    def validate_config(self) -> bool:
+        """Validate Qwen configuration"""
+        try:
+            return self.auth_manager.is_authenticated()
+        except Exception as e:
+            self.logger.error(f"Qwen auth validation failed: {e}")
+            return False
     
     async def generate(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> LLMResponse:
         """Generate response from Qwen"""
@@ -92,9 +104,12 @@ class QwenClient(BaseLLMClient):
         return await self.chat(messages, **kwargs)
     
     async def chat(self, messages: List[Dict[str, str]], **kwargs) -> LLMResponse:
-        """Chat with Qwen API"""
+        """Chat with Qwen API using OAuth authentication"""
         try:
+            # Get authenticated session and headers
             session = await self._get_session()
+            headers = self.auth_manager.get_auth_headers()
+            base_url = self.auth_manager.get_base_url()
             
             payload = {
                 "model": self.config.model,
@@ -103,13 +118,11 @@ class QwenClient(BaseLLMClient):
                 "max_tokens": kwargs.get("max_tokens", self.config.max_tokens)
             }
             
-            headers = {
-                "Authorization": f"Bearer {self.config.api_key}",
-                "Content-Type": "application/json"
-            }
+            # Use base URL + /chat/completions (OpenAI format)
+            endpoint = f"{base_url}/chat/completions"
             
             async with session.post(
-                f"{self.config.base_url}/chat/completions",
+                endpoint,
                 json=payload,
                 headers=headers,
                 timeout=self.config.timeout
@@ -132,6 +145,12 @@ class QwenClient(BaseLLMClient):
         except Exception as e:
             self.logger.error(f"Qwen API call failed: {e}")
             raise
+    
+    async def close(self):
+        """Close HTTP session"""
+        if self.session:
+            await self.session.close()
+            self.session = None
 
 class ClaudeClient(BaseLLMClient):
     """Anthropic Claude client"""
@@ -392,24 +411,28 @@ class LLMManager:
     def load_config(self):
         """Load LLM configurations"""
         try:
-            with open(self.config_path, 'r') as f:
-                config_data = yaml.safe_load(f)
+            # Try to load from the working config path first
+            working_config_path = "/home/krawin/code/jarvis/config.yaml"
+            if os.path.exists(working_config_path):
+                with open(working_config_path, 'r') as f:
+                    config_data = yaml.safe_load(f)
+                
+                llm_config = config_data.get('llm', {})
+                
+                # Load Qwen config with OAuth authentication
+                if llm_config.get('provider') == 'qwen':
+                    qwen_config = LLMConfig(
+                        provider=LLMProvider.QWEN,
+                        model=llm_config.get('qwen_model', 'qwen3-coder-plus'),
+                        base_url=llm_config.get('qwen_base_url', 'https://portal.qwen.ai/v1'),
+                        api_key="oauth",  # Placeholder - OAuth manager handles auth
+                        temperature=llm_config.get('temperature', 0.4)
+                    )
+                    self.register_client('qwen', qwen_config)
+                    self.current_provider = 'qwen'
+                    self.logger.info("✅ Loaded Qwen config with OAuth authentication")
             
-            llm_config = config_data.get('llm', {})
-            
-            # Load Qwen config from existing setup
-            if llm_config.get('provider') == 'qwen':
-                qwen_config = LLMConfig(
-                    provider=LLMProvider.QWEN,
-                    model=llm_config.get('qwen_model', 'qwen3-coder-plus'),
-                    base_url=llm_config.get('qwen_base_url', 'https://portal.qwen.ai/v1'),
-                    api_key=os.getenv('QWEN_API_KEY'),
-                    temperature=llm_config.get('temperature', 0.4)
-                )
-                self.register_client('qwen', qwen_config)
-                self.current_provider = 'qwen'
-            
-            # Load other providers from environment
+            # Load other providers from environment (when available)
             self._load_env_configs()
             
         except Exception as e:

@@ -6,8 +6,8 @@ temporal:
 
 llm:
   provider: "qwen"
-  api_key: "${LLM_API_KEY}"
-  model: "qwen2.5-coder:7b"
+  api_key: "oauth"  # Using OAuth authentication via ~/.qwen/oauth_creds.json
+  model: "qwen3-coder-plus"
   max_tokens: 4096
 
 database:
