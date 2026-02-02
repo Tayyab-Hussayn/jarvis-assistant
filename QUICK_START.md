@@ -12,8 +12,9 @@ Shows all capabilities, then exits.
 
 #### Voice Interface
 ```bash
-python voice_cli.py conversation    # Start voice chat
-python voice_cli.py test-speech     # Test speech recognition
+python voice_cli.py conversation    # Start voice chat (TTS + STT)
+python voice_cli.py test-speech     # Test speech recognition only
+python test_jarvis_voice.py         # Test TTS integration
 ```
 
 #### Task Execution
@@ -67,7 +68,12 @@ docker-compose -f docker-compose-temporal.yml up -d
 - `config_llm_extended.yaml` - LLM configuration
 - `ROOT_DIRECTORY_GUIDE.md` - Complete file reference
 
-## 🎯 Quick Tasks
+## ✅ Recent Fixes
+
+- **Voice Activity Detection**: Auto-stops 2s after silence, no time limits
+- **Qwen OAuth**: Professional authentication with session management  
+- **TTS Audio Playback**: Fixed audio bytes not playing through speakers
+- **API Rate Limiting**: Removed custom limits, using Qwen defaults
 
 ```bash
 # Voice conversation

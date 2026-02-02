@@ -82,32 +82,22 @@ class SpeechRecognitionSTT(BaseSTTProvider):
         
         try:
             import speech_recognition as sr
-            import sounddevice as sd
-            import soundfile as sf
-            import numpy as np
+            from .voice_activity_detector import voice_detector
+            
+            # Use VAD for recording
+            self.logger.info("🎤 Using voice activity detection...")
+            audio_bytes = await voice_detector.record_with_vad()
+            
+            if not audio_bytes:
+                self.logger.warning("No audio recorded")
+                return ""
+            
+            # Save audio bytes to temp file for speech_recognition
             import tempfile
             import os
             
-            self.logger.info(f"🎤 Recording for {duration} seconds...")
-            
-            # Record audio with proper settings
-            sample_rate = 44100  # Higher sample rate for better quality
-            channels = 1
-            
-            # Record audio
-            audio_data = sd.rec(
-                int(duration * sample_rate), 
-                samplerate=sample_rate, 
-                channels=channels, 
-                dtype=np.int16  # Use int16 for better compatibility
-            )
-            sd.wait()  # Wait for recording to complete
-            
-            self.logger.info("🎵 Recording complete, processing...")
-            
-            # Save to temporary WAV file
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
-                sf.write(tmp_file.name, audio_data, sample_rate)
+                tmp_file.write(audio_bytes)
                 tmp_path = tmp_file.name
             
             try:
@@ -319,7 +309,7 @@ class MultiProviderSTT:
             else:
                 self.logger.warning(f"❌ {provider.get_name()} STT not available")
     
-    async def transcribe_microphone(self, duration: int = 5) -> str:
+    async def transcribe_microphone(self, duration: int = 2) -> str:
         """Transcribe microphone input with fallback"""
         
         # Try primary provider first

@@ -124,8 +124,7 @@ class QwenClient(BaseLLMClient):
             async with session.post(
                 endpoint,
                 json=payload,
-                headers=headers,
-                timeout=self.config.timeout
+                headers=headers
             ) as response:
                 if response.status == 200:
                     data = await response.json()
@@ -573,6 +572,15 @@ class LLMManager:
             "available_providers": self.get_available_providers(),
             "total_clients": len(self.clients)
         }
+    
+    async def cleanup(self):
+        """Clean up all client sessions"""
+        for client in self.clients.values():
+            if hasattr(client, 'close'):
+                try:
+                    await client.close()
+                except:
+                    pass
 
 # Global LLM manager instance
 llm_manager = LLMManager()

@@ -179,13 +179,49 @@ class VoiceInterface:
             else:
                 audio_bytes = await self.tts_engine.speak_text(cleaned_text)
                 self.logger.info(f"JARVIS spoke: '{text[:50]}...' ({len(audio_bytes)} bytes)")
+                
+                # Play audio bytes through speakers
+                await self._play_audio_bytes(audio_bytes)
                 return None
                 
         except Exception as e:
             self.logger.error(f"Speech failed: {e}")
             return None
     
-    async def listen(self, duration: int = 5) -> str:
+    async def _play_audio_bytes(self, audio_bytes: bytes):
+        """Play audio bytes through speakers"""
+        try:
+            import sounddevice as sd
+            import soundfile as sf
+            import tempfile
+            import os
+            from pathlib import Path
+            
+            # Save audio bytes to temporary file
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp_file:
+                tmp_file.write(audio_bytes)
+                tmp_path = tmp_file.name
+            
+            try:
+                # Read audio file and play
+                data, sample_rate = sf.read(tmp_path)
+                sd.play(data, sample_rate)
+                sd.wait()  # Wait for playback to complete
+                self.logger.info("🔊 Audio playback completed")
+                
+            finally:
+                # Clean up temporary file
+                try:
+                    os.unlink(tmp_path)
+                except:
+                    pass
+                    
+        except ImportError:
+            self.logger.error("sounddevice/soundfile required for audio playback")
+        except Exception as e:
+            self.logger.error(f"Audio playback failed: {e}")
+    
+    async def listen(self, duration: int = 2) -> str:
         """Listen for speech and convert to text"""
         try:
             text = await self.stt_engine.transcribe_microphone(duration)
@@ -220,7 +256,7 @@ class VoiceInterface:
             while self.conversation_mode:
                 # Listen for user input
                 print("🎤 Listening... (speak now)")
-                user_speech = await self.listen(duration=10)
+                user_speech = await self.listen(duration=2)
                 
                 if not user_speech.strip():
                     await self.speak("I didn't hear anything. Please try again.")
@@ -252,6 +288,12 @@ class VoiceInterface:
         
         except KeyboardInterrupt:
             await self.speak("Voice conversation ended.")
+        finally:
+            # Clean up LLM sessions
+            try:
+                await llm_manager.cleanup()
+            except:
+                pass
         
         self.conversation_mode = False
     
