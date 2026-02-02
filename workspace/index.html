@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delicious Bites | Fine Dining</title>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Arial', sans-serif; line-height: 1.6; }
+header { background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3') no-repeat center center/cover; color: white; text-align: center; padding: 100px 20px; }
+nav { background: #333; position: fixed; top: 0; width: 100%; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; }
+nav ul { display: flex; list-style: none; }
+nav li { margin-left: 25px; }
+nav a { color: white; text-decoration: none; font-weight: bold; transition: color 0.3s; }
+nav a:hover { color: #f8c454; }
+.hero-content h1 { font-size: 3.5rem; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+.hero-content p { font-size: 1.2rem; max-width: 600px; margin: 0 auto 30px; }
+.btn { background: #f8c454; color: #333; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: background 0.3s; }
+.btn:hover { background: #e0b04a; transform: scale(1.05); }
+section { padding: 80px 5%; }
+.menu-section { background: #f9f9f9; }
+.section-title { text-align: center; margin-bottom: 50px; font-size: 2.5rem; color: #333; }
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+.menu-item { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: transform 0.3s; }
+.menu-item:hover { transform: translateY(-10px); }
+.menu-img { width: 100%; height: 200px; object-fit: cover; }
+.menu-info { padding: 20px; }
+.menu-info h3 { color: #333; margin-bottom: 10px; }
+.price { color: #f8c454; font-weight: bold; font-size: 1.2rem; }
+.about-section { display: flex; align-items: center; gap: 50px; }
+.about-text { flex: 1; }
+.about-image { flex: 1; border-radius: 10px; overflow: hidden; }
+.about-image img { width: 100%; height: auto; display: block; }
+footer { background: #333; color: white; text-align: center; padding: 30px; }
+@media (max-width: 768px) {
+nav { flex-direction: column; padding: 10px 5%; }
+nav ul { margin-top: 10px; }
+nav li { margin: 0 10px; }
+.hero-content h1 { font-size: 2.5rem; }
+.about-section { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<nav>
+<div class="logo">Delicious Bites</div>
+<ul>
+<li><a href="#home">Home</a></li>
+<li><a href="#menu">Menu</a></li>
+<li><a href="#about">About</a></li>
+<li><a href="#contact">Contact</a></li>
+</ul>
+</nav>
+
+<header id="home">
+<div class="hero-content">
+<h1>Experience Culinary Excellence</h1>
+<p>Discover flavors that tell stories at our award-winning restaurant with fresh ingredients and passionate chefs.</p>
+<a href="#menu" class="btn">View Our Menu</a>
+</div>
+</header>
+
+<section id="menu" class="menu-section">
+<h2 class="section-title">Our Signature Dishes</h2>
+<div class="menu-grid">
+<div class="menu-item">
+<img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Truffle Pasta" class="menu-img">
+<div class="menu-info">
+<h3>Truffle Pasta</h3>
+<p>Creamy pasta with seasonal truffles and parmesan</p>
+<div class="price">$24.99</div>
+</div>
+</div>
+<div class="menu-item">
+<img src="https://images.unsplash.com/photo-1606755962773-d324e0a13086?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Grilled Salmon" class="menu-img">
+<div class="menu-info">
+<h3>Grilled Salmon</h3>
+<p>Fresh Atlantic salmon with lemon butter sauce</p>
+<div class="price">$28.99</div>
+</div>
+</div>
+<div class="menu-item">
+<img src="https://images.unsplash.com/photo-1606491956689-2ea866880c84?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Chocolate Souffle" class="menu-img">
+<div class="menu-info">
+<h3>Chocolate Soufflé</h3>
+<p>Warm chocolate soufflé with vanilla ice cream</p>
+<div class="price">$12.99</div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="about" class="about-section">
+<div class="about-text">
+<h2 class="section-title">Our Story</h2>
+<p>Founded in 2010, Delicious Bites has been serving exceptional cuisine made from locally-sourced ingredients. Our chef brings over 20 years of experience, creating dishes that blend traditional techniques with modern innovation. We're committed to providing an unforgettable dining experience in a warm, welcoming atmosphere.</p>
+</div>
+<div class="about-image">
+<img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Restaurant Interior">
+</div>
+</section>
+
+<footer id="contact">
+<p>&copy; 2024 Delicious Bites Restaurant. All rights reserved.</p>
+<p>Contact us: (555) 123-4567 | info@deliciousbites.com</p>
+<p>123 Gourmet Street, Foodville, FC 12345</p>
+</footer>
+
+<script>
+// Smooth scrolling for navigation links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+anchor.addEventListener('click', function (e) {
+e.preventDefault();
+document.querySelector(this.getAttribute('href')).scrollIntoView({
+behavior: 'smooth'
+});
+});
+});
+
+// Simple animation on scroll
+const observerOptions = {
+root: null,
+rootMargin: '0px',
+threshold: 0.1
+};
+
+const observer = new IntersectionObserver((entries) => {
+entries.forEach(entry => {
+if (entry.isIntersecting) {
+entry.target.style.opacity = 1;
+entry.target.style.transform = 'translateY(0)';
+}
+});
+}, observerOptions);
+
+document.querySelectorAll('.menu-item, .about-text').forEach(el => {
+el.style.opacity = 0;
+el.style.transform = 'translateY(20px)';
+el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+observer.observe(el);
+});
+</script>
+</body>
+</html>

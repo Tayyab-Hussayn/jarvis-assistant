@@ -10,38 +10,11 @@ from typing import Dict, List, Any, Optional
 from temporalio import workflow, activity
 from temporalio.common import RetryPolicy
 
-# Import JARVIS components
+# Import JARVIS components inside activities to avoid Temporal restrictions
 import sys
 import logging
 import uuid
 sys.path.append('/home/krawin/exp.code/jarvis')
-
-try:
-    from modules.tools.base_tool import tool_registry
-    from core.llm.llm_manager import llm_manager
-except ImportError as e:
-    print(f"Warning: Could not import JARVIS components: {e}")
-    # Create mock objects for testing
-    class MockToolRegistry:
-        async def execute_tool(self, tool_name, **params):
-            return type('Result', (), {
-                'success': True,
-                'output': f"Mock execution of {tool_name}",
-                'error_message': None,
-                'execution_time': 0.1
-            })()
-    
-    class MockLLMManager:
-        async def generate(self, prompt, system_prompt=None, provider=None):
-            return type('Response', (), {
-                'content': f"Mock LLM response to: {prompt[:50]}...",
-                'model': 'mock-model',
-                'provider': 'mock',
-                'tokens_used': 100
-            })()
-    
-    tool_registry = MockToolRegistry()
-    llm_manager = MockLLMManager()
 
 from .temporal_engine import TemporalWorkflowEngine, WorkflowRequest, WorkflowResult
 
@@ -50,6 +23,9 @@ from .temporal_engine import TemporalWorkflowEngine, WorkflowRequest, WorkflowRe
 async def execute_tool_activity(tool_name: str, **parameters) -> Dict[str, Any]:
     """Execute a JARVIS tool as Temporal activity"""
     try:
+        # Import tool registry inside activity to avoid Temporal restrictions
+        from modules.tools.base_tool import tool_registry
+        
         result = await tool_registry.execute_tool(tool_name, **parameters)
         return {
             "success": result.success,
@@ -70,7 +46,10 @@ async def llm_reasoning_activity(prompt: str, system_prompt: Optional[str] = Non
                                provider: Optional[str] = None) -> Dict[str, Any]:
     """Execute LLM reasoning as Temporal activity"""
     try:
-        response = await llm_manager.generate(
+        # Import smart LLM wrapper inside activity to avoid Temporal restrictions
+        from core.llm.smart_llm_wrapper import smart_llm
+        
+        response = await smart_llm.generate(
             prompt=prompt,
             system_prompt=system_prompt,
             provider=provider

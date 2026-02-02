@@ -146,10 +146,16 @@ class QwenClient(BaseLLMClient):
             raise
     
     async def close(self):
-        """Close HTTP session"""
-        if self.session:
-            await self.session.close()
-            self.session = None
+        """Close HTTP session properly"""
+        if self.session and not self.session.closed:
+            try:
+                await self.session.close()
+                # Wait a bit for the underlying connections to close
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                self.logger.warning(f"Error closing session: {e}")
+            finally:
+                self.session = None
 
 class ClaudeClient(BaseLLMClient):
     """Anthropic Claude client"""
@@ -543,15 +549,60 @@ class LLMManager:
     
     async def generate(self, prompt: str, system_prompt: Optional[str] = None, 
                       provider: Optional[str] = None, **kwargs) -> LLMResponse:
-        """Generate response using current or specified provider"""
+        """Generate response using current or specified provider with quota management"""
         
-        provider_name = provider or self.current_provider
+        from .quota_manager import quota_manager
         
-        if not provider_name or provider_name not in self.clients:
-            raise ValueError(f"No valid provider available. Current: {provider_name}")
+        # Determine provider with quota management
+        if provider:
+            target_providers = [provider] if provider in self.clients else []
+        else:
+            target_providers = self.get_available_providers()
         
-        client = self.clients[provider_name]
-        return await client.generate(prompt, system_prompt, **kwargs)
+        # Get best available provider considering quotas
+        best_provider = quota_manager.get_best_provider(target_providers)
+        
+        if not best_provider:
+            # Check if any providers are in cooldown
+            status = quota_manager.get_status_summary()
+            cooldown_info = {p: s for p, s in status.items() if s.get('cooldown_remaining', 0) > 0}
+            
+            if cooldown_info:
+                cooldown_msg = ", ".join([f"{p}: {int(s['cooldown_remaining'])}s" for p, s in cooldown_info.items()])
+                raise ValueError(f"All providers in cooldown. Remaining: {cooldown_msg}")
+            else:
+                raise ValueError(f"No valid provider available. Available: {target_providers}")
+        
+        # Try the selected provider
+        try:
+            client = self.clients[best_provider]
+            response = await client.generate(prompt, system_prompt, **kwargs)
+            
+            # Record success
+            quota_manager.record_success(best_provider)
+            return response
+            
+        except Exception as e:
+            # Record quota error
+            quota_manager.record_quota_error(best_provider, str(e))
+            
+            # Try fallback provider if quota error
+            if "quota" in str(e).lower() or "429" in str(e):
+                remaining_providers = [p for p in target_providers if p != best_provider]
+                fallback_provider = quota_manager.get_best_provider(remaining_providers)
+                
+                if fallback_provider:
+                    self.logger.warning(f"🔄 Falling back to {fallback_provider} due to quota")
+                    try:
+                        client = self.clients[fallback_provider]
+                        response = await client.generate(prompt, system_prompt, **kwargs)
+                        quota_manager.record_success(fallback_provider)
+                        return response
+                    except Exception as fallback_error:
+                        quota_manager.record_quota_error(fallback_provider, str(fallback_error))
+                        raise fallback_error
+            
+            raise e
     
     async def chat(self, messages: List[Dict[str, str]], 
                   provider: Optional[str] = None, **kwargs) -> LLMResponse:

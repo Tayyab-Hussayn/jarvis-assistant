@@ -1,0 +1,598 @@
+#!/usr/bin/env python3
+"""
+JARVIS - Unified AI Agent Interface
+Complete access to all JARVIS capabilities in one command
+"""
+
+import sys
+import os
+import asyncio
+import argparse
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass
+import json
+
+# Add project root to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+@dataclass
+class JarvisCapability:
+    """Represents a JARVIS capability"""
+    name: str
+    description: str
+    category: str
+    commands: List[str]
+    status: str = "available"
+
+class JarvisCapabilityRegistry:
+    """Registry of all JARVIS capabilities"""
+    
+    def __init__(self):
+        self.capabilities = self._discover_capabilities()
+    
+    def _discover_capabilities(self) -> Dict[str, JarvisCapability]:
+        """Discover all available JARVIS capabilities"""
+        
+        capabilities = {
+            # Core Engines
+            "reasoning": JarvisCapability(
+                name="Reasoning Engine",
+                description="Advanced task decomposition, roadmap generation, and anti-hallucination",
+                category="Core Engines",
+                commands=["reason", "decompose", "roadmap", "validate"]
+            ),
+            "execution": JarvisCapability(
+                name="Execution Engine", 
+                description="Tool orchestration, code execution, and recovery systems",
+                category="Core Engines",
+                commands=["execute", "run", "orchestrate", "recover"]
+            ),
+            "workflow": JarvisCapability(
+                name="Workflow Engine",
+                description="Simple and temporal workflows, multi-task processing",
+                category="Core Engines", 
+                commands=["workflow", "task", "multi-task", "temporal"]
+            ),
+            
+            # LLM System
+            "llm": JarvisCapability(
+                name="LLM Manager",
+                description="Multi-provider LLM with smart content filtering",
+                category="AI/LLM",
+                commands=["llm", "generate", "chat", "providers", "quota"]
+            ),
+            "content-filter": JarvisCapability(
+                name="Content Filter",
+                description="Clean code extraction from LLM responses",
+                category="AI/LLM",
+                commands=["filter", "clean-code", "extract"]
+            ),
+            
+            # Voice Interface
+            "voice": JarvisCapability(
+                name="Voice Interface",
+                description="Speech-to-text, text-to-speech, voice conversations",
+                category="Voice/Audio",
+                commands=["voice", "speak", "listen", "conversation"]
+            ),
+            "audio": JarvisCapability(
+                name="Audio Manager",
+                description="Audio file management and processing",
+                category="Voice/Audio", 
+                commands=["audio", "tts", "stt", "cleanup"]
+            ),
+            
+            # Tools & Automation
+            "tools": JarvisCapability(
+                name="Tool Registry",
+                description="File manager, terminal, web search, calculator, etc.",
+                category="Tools",
+                commands=["tools", "file", "terminal", "web", "calc"]
+            ),
+            "automation": JarvisCapability(
+                name="Web Automation",
+                description="Browser automation and web scraping",
+                category="Tools",
+                commands=["automate", "browser", "scrape", "web-actions"]
+            ),
+            "email": JarvisCapability(
+                name="Email Client",
+                description="Email automation and monitoring",
+                category="Tools",
+                commands=["email", "send", "monitor", "inbox"]
+            ),
+            
+            # Memory & Data
+            "memory": JarvisCapability(
+                name="Memory System",
+                description="Vector memory, conversation history, data persistence",
+                category="Memory/Data",
+                commands=["memory", "remember", "recall", "history"]
+            ),
+            "database": JarvisCapability(
+                name="Database Manager", 
+                description="PostgreSQL, Redis, Qdrant integration",
+                category="Memory/Data",
+                commands=["db", "database", "cache", "vector"]
+            ),
+            
+            # Monitoring & Intelligence
+            "monitoring": JarvisCapability(
+                name="Monitoring System",
+                description="Performance monitoring, health checks, metrics",
+                category="System",
+                commands=["monitor", "health", "metrics", "status"]
+            ),
+            "intelligence": JarvisCapability(
+                name="Intelligence Upgrades",
+                description="Pattern learning, adversarial validation, multi-level planning",
+                category="AI/Intelligence",
+                commands=["learn", "validate", "plan", "improve"]
+            ),
+            "skills": JarvisCapability(
+                name="Skills Framework",
+                description="Code generation, architecture design, prompt optimization",
+                category="AI/Skills",
+                commands=["skills", "code-gen", "architect", "optimize"]
+            ),
+            
+            # Configuration & Management
+            "config": JarvisCapability(
+                name="Configuration Manager",
+                description="Environment configuration and settings management",
+                category="System",
+                commands=["config", "env", "settings", "setup"]
+            )
+        }
+        
+        # Check actual availability
+        for cap in capabilities.values():
+            cap.status = self._check_capability_status(cap.name)
+        
+        return capabilities
+    
+    def _check_capability_status(self, capability_name: str) -> str:
+        """Check if a capability is actually available"""
+        try:
+            # Basic import checks for key capabilities
+            if capability_name == "LLM Manager":
+                from core.llm.llm_manager import llm_manager
+                return "available"
+            elif capability_name == "Voice Interface":
+                from core.voice.voice_interface import VoiceInterface
+                return "available"
+            elif capability_name == "Workflow Engine":
+                from core.engines.workflow.simple_workflow import SimpleWorkflowEngine
+                return "available"
+            # Add more checks as needed
+            return "available"
+        except ImportError:
+            return "unavailable"
+        except Exception:
+            return "error"
+    
+    def get_capabilities_by_category(self) -> Dict[str, List[JarvisCapability]]:
+        """Get capabilities grouped by category"""
+        categories = {}
+        for cap in self.capabilities.values():
+            if cap.category not in categories:
+                categories[cap.category] = []
+            categories[cap.category].append(cap)
+        return categories
+    
+    def search_capabilities(self, query: str) -> List[JarvisCapability]:
+        """Search capabilities by name, description, or commands"""
+        query_lower = query.lower()
+        results = []
+        
+        for cap in self.capabilities.values():
+            if (query_lower in cap.name.lower() or 
+                query_lower in cap.description.lower() or
+                any(query_lower in cmd for cmd in cap.commands)):
+                results.append(cap)
+        
+        return results
+
+class JarvisUnifiedCLI:
+    """Unified JARVIS Command Line Interface"""
+    
+    def __init__(self):
+        self.registry = JarvisCapabilityRegistry()
+        self.version = "2.0.0"
+    
+    def create_parser(self) -> argparse.ArgumentParser:
+        """Create the main argument parser"""
+        
+        parser = argparse.ArgumentParser(
+            prog='jarvis',
+            description='🤖 JARVIS - Unified AI Agent Interface',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples:
+  jarvis status                    # Show system status
+  jarvis capabilities              # List all capabilities  
+  jarvis voice conversation        # Start voice chat
+  jarvis llm chat                  # Interactive LLM chat
+  jarvis workflow create "task"    # Create workflow
+  jarvis tools list                # List available tools
+  jarvis config show               # Show configuration
+  
+For detailed help on any command: jarvis <command> --help
+            """
+        )
+        
+        parser.add_argument('--version', action='version', version=f'JARVIS {self.version}')
+        
+        # Create subparsers for different commands
+        subparsers = parser.add_subparsers(dest='command', help='Available commands')
+        
+        # Status command
+        status_parser = subparsers.add_parser('status', help='Show JARVIS system status')
+        status_parser.add_argument('--detailed', '-d', action='store_true', help='Show detailed status')
+        
+        # Capabilities command
+        cap_parser = subparsers.add_parser('capabilities', help='Show JARVIS capabilities')
+        cap_parser.add_argument('--category', '-c', help='Filter by category')
+        cap_parser.add_argument('--search', '-s', help='Search capabilities')
+        cap_parser.add_argument('--available-only', '-a', action='store_true', help='Show only available capabilities')
+        
+        # Voice commands
+        voice_parser = subparsers.add_parser('voice', help='Voice interface commands')
+        voice_subparsers = voice_parser.add_subparsers(dest='voice_command')
+        voice_subparsers.add_parser('conversation', help='Start voice conversation')
+        voice_subparsers.add_parser('test', help='Test voice system')
+        voice_subparsers.add_parser('speak', help='Speak text').add_argument('text', help='Text to speak')
+        
+        # LLM commands
+        llm_parser = subparsers.add_parser('llm', help='LLM management commands')
+        llm_subparsers = llm_parser.add_subparsers(dest='llm_command')
+        llm_subparsers.add_parser('status', help='Show LLM status')
+        llm_subparsers.add_parser('providers', help='List LLM providers')
+        llm_subparsers.add_parser('quota', help='Show quota status')
+        llm_subparsers.add_parser('chat', help='Interactive chat')
+        
+        # Workflow commands
+        workflow_parser = subparsers.add_parser('workflow', help='Workflow management')
+        workflow_subparsers = workflow_parser.add_subparsers(dest='workflow_command')
+        workflow_subparsers.add_parser('list', help='List workflows')
+        workflow_subparsers.add_parser('status', help='Show workflow status')
+        create_workflow = workflow_subparsers.add_parser('create', help='Create workflow')
+        create_workflow.add_argument('description', help='Workflow description')
+        create_workflow.add_argument('--type', choices=['simple', 'multi'], default='simple', help='Workflow type')
+        
+        # Tools commands
+        tools_parser = subparsers.add_parser('tools', help='Tool management')
+        tools_subparsers = tools_parser.add_subparsers(dest='tools_command')
+        tools_subparsers.add_parser('list', help='List available tools')
+        tools_subparsers.add_parser('stats', help='Show tool statistics')
+        
+        # Config commands
+        config_parser = subparsers.add_parser('config', help='Configuration management')
+        config_subparsers = config_parser.add_subparsers(dest='config_command')
+        config_subparsers.add_parser('show', help='Show configuration')
+        config_subparsers.add_parser('validate', help='Validate configuration')
+        config_subparsers.add_parser('setup', help='Interactive setup')
+        
+        # Interactive mode
+        subparsers.add_parser('interactive', help='Start interactive mode')
+        
+        return parser
+    
+    async def handle_command(self, args) -> int:
+        """Handle the parsed command"""
+        
+        try:
+            if not args.command:
+                self.show_welcome()
+                return 0
+            
+            if args.command == 'status':
+                await self.show_status(args.detailed)
+            elif args.command == 'capabilities':
+                self.show_capabilities(args.category, args.search, args.available_only)
+            elif args.command == 'voice':
+                await self.handle_voice_command(args)
+            elif args.command == 'llm':
+                await self.handle_llm_command(args)
+            elif args.command == 'workflow':
+                await self.handle_workflow_command(args)
+            elif args.command == 'tools':
+                await self.handle_tools_command(args)
+            elif args.command == 'config':
+                await self.handle_config_command(args)
+            elif args.command == 'interactive':
+                await self.interactive_mode()
+            else:
+                print(f"❌ Unknown command: {args.command}")
+                return 1
+            
+            return 0
+            
+        except KeyboardInterrupt:
+            print("\n👋 Goodbye!")
+            return 0
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return 1
+    
+    def show_welcome(self):
+        """Show welcome message and basic info"""
+        print(f"""
+🤖 JARVIS - Unified AI Agent Interface v{self.version}
+
+Available Commands:
+  status        Show system status
+  capabilities  List all capabilities
+  voice         Voice interface
+  llm           LLM management
+  workflow      Workflow execution
+  tools         Tool management
+  config        Configuration
+  interactive   Interactive mode
+
+Use 'jarvis <command> --help' for detailed help on any command.
+Use 'jarvis capabilities' to see all available features.
+        """)
+    
+    async def show_status(self, detailed: bool = False):
+        """Show JARVIS system status"""
+        print("🤖 JARVIS System Status")
+        print("=" * 50)
+        
+        # Basic status
+        total_caps = len(self.registry.capabilities)
+        available_caps = len([c for c in self.registry.capabilities.values() if c.status == "available"])
+        
+        print(f"📊 Capabilities: {available_caps}/{total_caps} available")
+        print(f"🔧 Version: {self.version}")
+        
+        if detailed:
+            print("\n📋 Detailed Status:")
+            categories = self.registry.get_capabilities_by_category()
+            
+            for category, caps in categories.items():
+                print(f"\n{category}:")
+                for cap in caps:
+                    status_icon = "✅" if cap.status == "available" else "❌"
+                    print(f"  {status_icon} {cap.name}")
+    
+    def show_capabilities(self, category: str = None, search: str = None, available_only: bool = False):
+        """Show JARVIS capabilities"""
+        print("🚀 JARVIS Capabilities")
+        print("=" * 50)
+        
+        capabilities = list(self.registry.capabilities.values())
+        
+        # Apply filters
+        if available_only:
+            capabilities = [c for c in capabilities if c.status == "available"]
+        
+        if search:
+            capabilities = self.registry.search_capabilities(search)
+        
+        if category:
+            capabilities = [c for c in capabilities if c.category.lower() == category.lower()]
+        
+        # Group by category
+        categories = {}
+        for cap in capabilities:
+            if cap.category not in categories:
+                categories[cap.category] = []
+            categories[cap.category].append(cap)
+        
+        for cat_name, caps in categories.items():
+            print(f"\n📁 {cat_name}")
+            print("-" * 30)
+            
+            for cap in caps:
+                status_icon = "✅" if cap.status == "available" else "❌"
+                print(f"{status_icon} {cap.name}")
+                print(f"   {cap.description}")
+                print(f"   Commands: {', '.join(cap.commands)}")
+                print()
+    
+    async def handle_voice_command(self, args):
+        """Handle voice commands"""
+        if not hasattr(args, 'voice_command') or not args.voice_command:
+            print("Voice commands: conversation, test, speak")
+            return
+        
+        if args.voice_command == 'conversation':
+            print("🎤 Starting voice conversation...")
+            # Import and use existing voice CLI
+            from voice_cli import start_conversation
+            await start_conversation()
+        elif args.voice_command == 'test':
+            print("🧪 Testing voice system...")
+            from voice_cli import test_voice_system
+            await test_voice_system()
+        elif args.voice_command == 'speak':
+            print(f"🗣️ Speaking: {args.text}")
+            from core.voice.voice_interface import VoiceInterface
+            voice = VoiceInterface()
+            await voice.speak(args.text)
+    
+    async def handle_llm_command(self, args):
+        """Handle LLM commands"""
+        if not hasattr(args, 'llm_command') or not args.llm_command:
+            print("LLM commands: status, providers, quota, chat")
+            return
+        
+        # Import and delegate to existing LLM CLI
+        from llm_cli import show_status, list_providers, show_quota_status, interactive_chat
+        
+        if args.llm_command == 'status':
+            await show_status()
+        elif args.llm_command == 'providers':
+            await list_providers()
+        elif args.llm_command == 'quota':
+            await show_quota_status()
+        elif args.llm_command == 'chat':
+            await interactive_chat()
+    
+    async def handle_workflow_command(self, args):
+        """Handle workflow commands"""
+        if not hasattr(args, 'workflow_command') or not args.workflow_command:
+            print("Workflow commands: list, status, create")
+            return
+        
+        try:
+            # Use simple workflow engine for basic operations
+            from core.engines.workflow.simple_workflow import SimpleWorkflowEngine
+            
+            workflow_engine = SimpleWorkflowEngine()
+            
+            if args.workflow_command == 'list':
+                workflows = workflow_engine.list_workflows()
+                print("📋 Active Workflows:")
+                if not workflows:
+                    print("  No active workflows")
+                else:
+                    for workflow in workflows:
+                        print(f"  • {workflow.name} ({workflow.status.value})")
+            
+            elif args.workflow_command == 'status':
+                print("🔧 Workflow Engine Status:")
+                print("  ✅ Simple Workflow Engine: Available")
+                try:
+                    from core.workflows.temporal_engine import TemporalWorkflowEngine
+                    print("  ✅ Temporal Engine: Available")
+                except:
+                    print("  ❌ Temporal Engine: Not available")
+            
+            elif args.workflow_command == 'create':
+                print(f"🚀 Creating workflow: {args.description}")
+                workflow = await workflow_engine.create_workflow_from_nl(args.description)
+                result = await workflow_engine.execute_workflow(workflow)
+                
+                if result.get('success'):
+                    print("✅ Workflow completed successfully")
+                    if 'files_created' in result:
+                        print(f"📁 Files created: {result['files_created']}")
+                else:
+                    print(f"❌ Workflow failed: {result.get('error', 'Unknown error')}")
+        
+        except Exception as e:
+            print(f"❌ Workflow error: {e}")
+    
+    async def handle_tools_command(self, args):
+        """Handle tools commands"""
+        if not hasattr(args, 'tools_command') or not args.tools_command:
+            print("Tools commands: list, stats")
+            return
+        
+        from modules.tools.base_tool import tool_registry
+        
+        # Initialize tools if not already done
+        try:
+            from modules.tools.terminal_executor import TerminalExecutor
+            from modules.tools.file_manager import FileManager
+            from modules.tools.web_search import WebSearch
+            from modules.tools.calculator import Calculator
+            from modules.tools.human_input import HumanInput
+            from modules.tools.voice_tool import VoiceTool
+            from modules.tools.email_tool import EmailTool
+            from modules.tools.code_executor_tool import CodeExecutorTool
+            
+            # Register tools if not already registered
+            tools_to_register = [
+                ("terminal", TerminalExecutor()),
+                ("file_manager", FileManager()),
+                ("web_search", WebSearch()),
+                ("calculator", Calculator()),
+                ("human_input", HumanInput()),
+                ("voice", VoiceTool()),
+                ("email", EmailTool()),
+                ("code_executor", CodeExecutorTool())
+            ]
+            
+            for name, tool in tools_to_register:
+                if name not in tool_registry.list_tools():
+                    tool_registry.register_tool(name, tool)
+        
+        except Exception as e:
+            print(f"⚠️ Some tools may not be available: {e}")
+        
+        if args.tools_command == 'list':
+            print("🔧 Available Tools:")
+            tools = tool_registry.list_tools()
+            if not tools:
+                print("  No tools registered")
+            else:
+                for tool_name in tools:
+                    tool = tool_registry.get_tool(tool_name)
+                    description = getattr(tool, '__doc__', None) or getattr(tool.__class__, '__doc__', 'No description')
+                    print(f"  • {tool_name}: {description}")
+        elif args.tools_command == 'stats':
+            print("📊 Tool Statistics:")
+            stats = tool_registry.get_all_stats()
+            if not stats:
+                print("  No statistics available")
+            else:
+                for tool_name, tool_stats in stats.items():
+                    print(f"  {tool_name}: {tool_stats}")
+    
+    async def handle_config_command(self, args):
+        """Handle config commands"""
+        if not hasattr(args, 'config_command') or not args.config_command:
+            print("Config commands: show, validate, setup")
+            return
+        
+        # Import and delegate to existing config CLI
+        from config_cli import ConfigCLI
+        
+        config_cli = ConfigCLI()
+        
+        if args.config_command == 'show':
+            config_cli.show_config()
+        elif args.config_command == 'validate':
+            config_cli.validate_config()
+        elif args.config_command == 'setup':
+            # Interactive setup would go here
+            print("🔧 Interactive setup not yet implemented")
+    
+    async def interactive_mode(self):
+        """Start interactive mode"""
+        print("🤖 JARVIS Interactive Mode")
+        print("Type 'help' for commands, 'exit' to quit")
+        print("-" * 40)
+        
+        while True:
+            try:
+                command = input("jarvis> ").strip()
+                
+                if command in ['exit', 'quit', 'q']:
+                    break
+                elif command in ['help', 'h']:
+                    self.show_welcome()
+                elif command == 'capabilities':
+                    self.show_capabilities()
+                elif command == 'status':
+                    await self.show_status()
+                elif command:
+                    # Parse and execute command
+                    args = command.split()
+                    parser = self.create_parser()
+                    try:
+                        parsed_args = parser.parse_args(args)
+                        await self.handle_command(parsed_args)
+                    except SystemExit:
+                        pass  # Ignore parser exits in interactive mode
+                
+            except KeyboardInterrupt:
+                break
+            except EOFError:
+                break
+        
+        print("\n👋 Goodbye!")
+
+async def main():
+    """Main entry point"""
+    cli = JarvisUnifiedCLI()
+    parser = cli.create_parser()
+    args = parser.parse_args()
+    
+    return await cli.handle_command(args)
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))

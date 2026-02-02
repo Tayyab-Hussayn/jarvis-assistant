@@ -268,9 +268,11 @@ class VoiceInterface:
                 
                 print(f"👤 You said: {user_speech}")
                 
-                # Get LLM response
+                # Get LLM response with smart filtering
                 try:
-                    llm_response = await llm_manager.generate(
+                    from core.llm.smart_llm_wrapper import smart_llm
+                    
+                    llm_response = await smart_llm.generate(
                         prompt=user_speech,
                         system_prompt="You are JARVIS, an AI assistant. Keep responses conversational and under 100 words for voice interaction."
                     )
@@ -291,7 +293,8 @@ class VoiceInterface:
         finally:
             # Clean up LLM sessions
             try:
-                await llm_manager.cleanup()
+                from core.llm.smart_llm_wrapper import smart_llm
+                await smart_llm.cleanup()
             except:
                 pass
         

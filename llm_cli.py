@@ -34,6 +34,8 @@ async def main():
     elif command == "chat":
         provider = sys.argv[2] if len(sys.argv) > 2 else None
         await interactive_chat(provider)
+    elif command == "quota":
+        await show_quota_status()
     else:
         print_help()
 
@@ -48,6 +50,7 @@ Commands:
   switch <provider>        - Switch to a provider
   test [provider]          - Test LLM with simple prompt
   chat [provider]          - Interactive chat session
+  quota                    - Show quota status for all providers
   
 Examples:
   python llm_cli.py status
@@ -188,6 +191,41 @@ async def interactive_chat(provider: str = None):
             break
         except Exception as e:
             print(f"\n❌ Error: {e}")
+
+async def show_quota_status():
+    """Show quota status for all providers"""
+    try:
+        from core.llm.quota_manager import quota_manager
+        
+        print("📊 LLM Provider Quota Status")
+        print("=" * 40)
+        
+        status = quota_manager.get_status_summary()
+        
+        if not status:
+            print("No quota information available")
+            return
+        
+        for provider, info in status.items():
+            status_emoji = {
+                "available": "✅",
+                "limited": "⚠️",
+                "exceeded": "❌",
+                "unknown": "❓"
+            }.get(info["status"], "❓")
+            
+            print(f"{status_emoji} {provider.upper()}:")
+            print(f"   Status: {info['status']}")
+            print(f"   Requests: {info['requests_made']}")
+            print(f"   Errors: {info['error_count']}")
+            
+            if info['cooldown_remaining'] > 0:
+                print(f"   Cooldown: {int(info['cooldown_remaining'])}s remaining")
+            
+            print()
+    
+    except Exception as e:
+        print(f"❌ Error getting quota status: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())

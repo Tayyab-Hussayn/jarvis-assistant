@@ -14,12 +14,18 @@ class FileManager(BaseTool):
     
     WHITELIST_DIRS = [
         "/home/krawin/exp.code/jarvis",
+        "/home/krawin/exp.code/jarvis/workspace",  # Default workspace for generated files
         "/tmp/jarvis_workspace",
         "/var/tmp/jarvis"
     ]
     
+    DEFAULT_WORKSPACE = "/home/krawin/exp.code/jarvis/workspace"
+    
     def __init__(self):
         super().__init__("file_manager")
+        # Ensure workspace exists
+        import os
+        os.makedirs(self.DEFAULT_WORKSPACE, exist_ok=True)
         
     def _is_path_safe(self, path: str) -> bool:
         """Check if path is in whitelist"""
@@ -90,22 +96,55 @@ class FileManager(BaseTool):
             )
     
     async def _write_file(self, path: str, content: str, encoding: str = "utf-8", append: bool = False) -> ToolResult:
-        """Write content to file"""
+        """Write content to file with intelligent path handling"""
+        
+        # Smart path resolution
+        resolved_path = self._resolve_path(path)
+        
         mode = 'a' if append else 'w'
         
-        # Create directory if it doesn't exist
-        dir_path = os.path.dirname(path)
+        # Create directory structure if it doesn't exist
+        dir_path = os.path.dirname(resolved_path)
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
+            self.logger.info(f"📁 Created directory structure: {dir_path}")
         
-        with open(path, mode, encoding=encoding) as f:
+        with open(resolved_path, mode, encoding=encoding) as f:
             f.write(content)
         
         return ToolResult(
             success=True,
-            output=f"Written {len(content)} characters to {path}",
-            metadata={"path": path, "size": len(content), "append": append}
+            output=f"Written {len(content)} characters to {resolved_path}",
+            metadata={"path": resolved_path, "size": len(content), "append": append}
         )
+    
+    def _resolve_path(self, path: str) -> str:
+        """Intelligently resolve file paths"""
+        import os
+        
+        # Handle different path formats
+        if path.startswith('/'):
+            # Absolute path - check if it's in whitelist
+            if self._is_path_safe(path):
+                return path
+            else:
+                # Redirect to workspace if not safe
+                filename = os.path.basename(path)
+                return os.path.join(self.DEFAULT_WORKSPACE, filename)
+        
+        elif '/' in path:
+            # Relative path with directories
+            if path.startswith('workspace/'):
+                # Remove workspace/ prefix and use workspace
+                relative_path = path[10:]  # Remove 'workspace/'
+                return os.path.join(self.DEFAULT_WORKSPACE, relative_path)
+            else:
+                # Treat as relative to workspace
+                return os.path.join(self.DEFAULT_WORKSPACE, path)
+        
+        else:
+            # Just a filename - use workspace
+            return os.path.join(self.DEFAULT_WORKSPACE, path)
     
     async def _create_directory(self, path: str) -> ToolResult:
         """Create directory"""

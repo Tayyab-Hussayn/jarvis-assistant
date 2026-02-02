@@ -35,18 +35,23 @@ class QwenAuthManager:
     """Manages Qwen OAuth authentication and token refresh"""
     
     def __init__(self, creds_path: str = "/home/krawin/.qwen/oauth_creds.json"):
-        self.creds_path = Path(creds_path)
+        self.creds_path = creds_path  # Use string instead of Path for Temporal compatibility
         self.logger = logging.getLogger("qwen_auth")
         self._token: Optional[QwenOAuthToken] = None
         
     def load_token(self) -> Optional[QwenOAuthToken]:
         """Load OAuth token from credentials file"""
         try:
-            if not self.creds_path.exists():
-                self.logger.error(f"Qwen credentials file not found: {self.creds_path}")
+            # Use string path instead of pathlib for Temporal compatibility
+            creds_path_str = str(self.creds_path)
+            
+            # Check if file exists using os.path instead of pathlib
+            import os
+            if not os.path.exists(creds_path_str):
+                self.logger.error(f"Qwen credentials file not found: {creds_path_str}")
                 return None
             
-            with open(self.creds_path, 'r') as f:
+            with open(creds_path_str, 'r') as f:
                 creds_data = json.load(f)
             
             token = QwenOAuthToken(
