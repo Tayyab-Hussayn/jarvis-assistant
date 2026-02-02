@@ -11,6 +11,7 @@ from pathlib import Path
 import json
 from .speech_cleaner import speech_cleaner
 from .audio_manager import audio_manager
+from .multi_stt import MultiProviderSTT, STTConfig, STTProvider
 
 @dataclass
 class VoiceConfig:
@@ -139,143 +140,7 @@ class TTSEngine:
             self.logger.error(f"OpenAI TTS failed: {e}")
             raise
 
-class STTEngine:
-    """Speech-to-Text engine"""
-    
-    def __init__(self, config: VoiceConfig):
-        self.config = config
-        self.logger = logging.getLogger("stt_engine")
-    
-    async def transcribe_audio(self, audio_file: str) -> str:
-        """Convert speech to text"""
-        
-        if self.config.stt_provider == "google":
-            return await self._google_stt(audio_file)
-        elif self.config.stt_provider == "whisper":
-            return await self._whisper_stt(audio_file)
-        elif self.config.stt_provider == "azure":
-            return await self._azure_stt(audio_file)
-        else:
-            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
-    
-    async def transcribe_microphone(self, duration: int = 5) -> str:
-        """Record from microphone and transcribe"""
-        try:
-            import sounddevice as sd
-            import soundfile as sf
-            import tempfile
-            
-            # Record audio
-            self.logger.info(f"Recording for {duration} seconds...")
-            sample_rate = 16000
-            audio_data = sd.rec(int(duration * sample_rate), 
-                              samplerate=sample_rate, 
-                              channels=1, 
-                              dtype='float64')
-            sd.wait()
-            
-            # Save to temporary file
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
-                sf.write(f.name, audio_data, sample_rate)
-                temp_file = f.name
-            
-            # Transcribe
-            text = await self.transcribe_audio(temp_file)
-            
-            # Cleanup
-            Path(temp_file).unlink()
-            
-            return text
-            
-        except ImportError:
-            self.logger.error("sounddevice/soundfile not installed. Run: pip install sounddevice soundfile")
-            raise
-        except Exception as e:
-            self.logger.error(f"Microphone transcription failed: {e}")
-            raise
-    
-    async def _google_stt(self, audio_file: str) -> str:
-        """Google Cloud STT"""
-        try:
-            from google.cloud import speech
-            
-            client = speech.SpeechClient()
-            
-            with open(audio_file, "rb") as f:
-                audio_content = f.read()
-            
-            audio = speech.RecognitionAudio(content=audio_content)
-            config = speech.RecognitionConfig(
-                encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
-                sample_rate_hertz=16000,
-                language_code=self.config.language,
-            )
-            
-            response = client.recognize(config=config, audio=audio)
-            
-            if response.results:
-                return response.results[0].alternatives[0].transcript
-            else:
-                return ""
-                
-        except ImportError:
-            self.logger.error("google-cloud-speech not installed")
-            raise
-        except Exception as e:
-            self.logger.error(f"Google STT failed: {e}")
-            raise
-    
-    async def _whisper_stt(self, audio_file: str) -> str:
-        """OpenAI Whisper STT"""
-        try:
-            import openai
-            
-            client = openai.AsyncOpenAI()
-            
-            with open(audio_file, "rb") as f:
-                transcript = await client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=f
-                )
-            
-            return transcript.text
-            
-        except ImportError:
-            self.logger.error("openai not installed")
-            raise
-        except Exception as e:
-            self.logger.error(f"Whisper STT failed: {e}")
-            raise
-    
-    async def _azure_stt(self, audio_file: str) -> str:
-        """Azure Speech STT"""
-        try:
-            import azure.cognitiveservices.speech as speechsdk
-            
-            speech_config = speechsdk.SpeechConfig(
-                subscription=os.getenv("AZURE_SPEECH_KEY"),
-                region=os.getenv("AZURE_SPEECH_REGION")
-            )
-            
-            audio_config = speechsdk.audio.AudioConfig(filename=audio_file)
-            speech_recognizer = speechsdk.SpeechRecognizer(
-                speech_config=speech_config,
-                audio_config=audio_config
-            )
-            
-            result = speech_recognizer.recognize_once()
-            
-            if result.reason == speechsdk.ResultReason.RecognizedSpeech:
-                return result.text
-            else:
-                return ""
-                
-        except ImportError:
-            self.logger.error("azure-cognitiveservices-speech not installed")
-            raise
-        except Exception as e:
-            self.logger.error(f"Azure STT failed: {e}")
-            raise
+
 
 class VoiceInterface:
     """Main voice interface for JARVIS"""
@@ -285,7 +150,14 @@ class VoiceInterface:
         self.logger = logging.getLogger("voice_interface")
         
         self.tts_engine = TTSEngine(self.config)
-        self.stt_engine = STTEngine(self.config)
+        
+        # Create STT configuration
+        stt_config = STTConfig(
+            primary_provider=STTProvider.SPEECH_RECOGNITION,
+            fallback_providers=[STTProvider.WHISPER_LOCAL, STTProvider.GOOGLE_CLOUD],
+            language=self.config.language
+        )
+        self.stt_engine = MultiProviderSTT(stt_config)
         
         self.conversation_mode = False
     
@@ -327,9 +199,10 @@ class VoiceInterface:
     async def transcribe_file(self, audio_file: str) -> str:
         """Transcribe audio file to text"""
         try:
-            text = await self.stt_engine.transcribe_audio(audio_file)
-            self.logger.info(f"Transcribed: '{text[:50]}...'")
-            return text
+            # For now, use microphone transcription method
+            # TODO: Implement file-based transcription in MultiProviderSTT
+            self.logger.warning("File transcription not yet implemented in MultiProviderSTT")
+            return ""
             
         except Exception as e:
             self.logger.error(f"Transcription failed: {e}")
